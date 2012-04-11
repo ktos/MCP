@@ -1,18 +1,27 @@
+; Console/Shell
+; very simple console/shell, allowing to type commands
+; and run modules
+
 :console_prompt dat "> ", 0
 :command_exit dat "exit", 0
-:command_halt dat "halt", 0
 :input dat "THIS TEXT IS TO BE OVERRIDDEN", 0
 
-:console
+; entry procedure
+; word (word context, char* command, char* parameters)
+:module_console
+     ifn [context], 0        ; if not run from the "init" context
+         set pc, console_endbad ; end, setting result to 0
+
      set push, i
      set push, j
      set push, x
      set push, y
      set push, z
 
-     jsr clear
-     set i, modules_console
+     jsr clrscr
+     set i, modules
 
+     set [context], 1
 :console_loop
      set a, console_prompt
      jsr print
@@ -27,15 +36,16 @@
           set pc, console_end
 
      ; iterate through modules
-     set i, modules_console
+     set i, modules
 :console_modules_loop
      set a, input
-     ifn [i], 0 ; if module is set, jump to it
-          jsr [i]
 
      ife [i], 0 ; if we've reached end, go to the
                 ; next console module
           set pc, console_modules_loop_end
+
+     ifn [i], 0 ; if module is set, jump to it
+          jsr [i]
 
      ife a, 1   ; if module returned true, command was
                 ; executed
@@ -46,14 +56,16 @@
 
 :console_modules_loop_end
 
-     ;ifn a, 1 ; if no module set this to 1, command was
+     ifn a, 1 ; if no module set this to 1, command was
               ; unrecognized
-     ;     jsr console_unrecognized
+          jsr console_unrecognized
 
-
-     jsr newline
 
      set pc, console_loop
+
+:console_endbad
+     set a, 0 ; returning 0
+     set pc, pop
 
 :console_end
      set pop, z
@@ -67,6 +79,7 @@
      jsr newline
      set a, munrecognized
      jsr print
+     jsr newline
      set pc, pop
 
-:munrecognized dat "Command not recognized", 0 
+:munrecognized dat "Command not recognized", 0

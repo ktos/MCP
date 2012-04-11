@@ -41,6 +41,8 @@ dat 0
 :video_cur
 dat 0x0000
 
+:context dat 0
+
 ; ##############################################################################
 ; Common API
 ; ##############################################################################
@@ -398,11 +400,19 @@ dat 0x0000
 
 :mcp_init
      jsr clrscr
+
+     set [context], 0 ; setting up the context - init
+
      ifn [module_init], 0
-          set pc, [module_init]
+          set pc, mcp_runentry
 
      set a, msg_ex_noinit
      jsr exception
 :mcp_end
+
+:mcp_runentry  ; when the entry module ends, halt system
+     jsr [module_init]
+     jsr halt
+
 
 

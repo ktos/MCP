@@ -1,12 +1,21 @@
+; clear module
+; function for clearing the screen in console :-)
 :module_clear
+     ifn [context], 1 ; if not in console context
+          set pc, module_clear_endbad
+
      set b, cmd_clear
      jsr strcmp
      ifn a, 1
-          set pc, pop
+          set pc, module_clear_endbad
 
      jsr clrscr
 
-     set a, 1
+     set a, 1    ; set result to 1 (true)
      set pc, pop
-:cmd_clear dat "clear", 0     
 
+:module_clear_endbad
+     set a, 0    ; set result to 0 (false)
+     set pc, pop
+
+:cmd_clear dat "clear", 0 
