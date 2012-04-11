@@ -1,4 +1,4 @@
-; Modular Master Control Program
+; Modular/Master Control Program
 ; Copyright (C) by Marcin "Ktos" Badurowicz 2012
 ;
 ; Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,26 +29,15 @@ set pc, mcp_init
 :modules
 dat 0
 
-; list of modules avaliable by menu
-; or rather their menu subroutines' addresses
-:modules_menu
-dat 0
-
-; list of modules avaliable by console
-; or rather their console subroutines' addresses
-:modules_console
-dat 0
-
 ; module which will be run as the first one
-:module_entry dat 0
+:module_init dat 0
 
 ; useful additional variables/memory addresses reserved
-:entropy
-dat 0
 
-:buffer
-dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+; 64-word buffer, used mostly for text
+:buffer dat "                                                                "
 
+; current video position
 :video_cur
 dat 0x0000
 
@@ -116,14 +105,6 @@ dat 0x0000
          set pc, memfill_loop
 
     set pc, pop
-
-; random()
-:random
-     mul [entropy], 0x1451
-     add [entropy], 1
-     mul a, [entropy]
-     set a, o
-     set pc, pop
 
 ; puts(char* text, word color)
 ; text in a
@@ -222,12 +203,11 @@ dat 0x0000
           set pc, readkey
 
      set [0x9000], 0
-     xor [entropy], a
      set pc, pop
 
-; clear()
+; clrscr()
 ; clears screen
-:clear
+:clrscr
      set a, 0x8000
      set b, 0x0200
      set c, 0x0000
@@ -310,7 +290,12 @@ dat 0x0000
 
 ; void locate(int row, int column)
 :locate
+     set c, a
      shl a, 5
+
+     ife c, 0
+          set a, 0
+
      add a, b
      set [video_cur], a
      set pc, pop
@@ -412,9 +397,9 @@ dat 0x0000
 
 
 :mcp_init
-     jsr clear
-     ifn [module_entry], 0
-          jsr [module_entry]
+     jsr clrscr
+     ifn [module_init], 0
+          set pc, [module_init]
 
      set a, msg_ex_noinit
      jsr exception
