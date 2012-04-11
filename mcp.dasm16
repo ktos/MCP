@@ -1,0 +1,515 @@
+; Modular Master Control Program
+; Copyright (C) by Marcin "Ktos" Badurowicz 2012
+;
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+;
+; The above copyright notice and this permission notice shall be included in all
+; copies or substantial portions of the Software.
+;
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+; SOFTWARE.
+
+
+; go to initialization
+set pc, init
+
+; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
+; list of modules
+; or rather their initial subroutines' addresses
+:modules
+dat 0
+
+:modules_count
+dat 0
+
+; list of modules avaliable by menu
+; or rather their menu subroutines' addresses
+:modules_menu
+dat 0
+
+; list of modules avaliable by console
+; or rather their console subroutines' addresses
+:modules_console
+dat module_halt, 0
+
+; useful additional variables/memory addresses reserved
+:module_active
+dat 0
+
+:entropy
+dat 0
+
+:video_cur
+dat 0x0000
+
+
+; strcmp(char* a, char* b)
+; return in a
+; 1 = same
+; 0 = different
+:strcmp
+
+:strcmp_loop
+     set c, 0
+
+     ife [a], [b]
+          jsr strcmp_checkend
+
+     ife c, 1
+          set pc, strcmp_end
+
+     ifn [a], [b]
+         set pc, strcmp_end
+
+     add a, 1
+     add b, 1
+     set pc, strcmp_loop
+
+:strcmp_checkend
+     ife [a], 0
+          set c, 1
+     set pc, pop
+
+:strcmp_end
+     set a, c
+     set pc, pop
+
+; strlen(char* a)
+:strlen
+     set b, a
+
+:strlen_loop
+     ife [a], 0
+          set pc, strlen_end
+
+     add a, 1
+     set pc, strlen_loop
+
+:strlen_end
+     sub a, b
+     set pc, pop
+
+
+; memfill(memory, length, value)
+:memfill
+    ife b, 0
+         set pc, pop
+
+    :memfill_loop
+    set [a], c
+    add a, 1
+    sub b, 1
+    ifn b, 0
+         set pc, memfill_loop
+
+    set pc, pop
+
+; random()
+:random
+     mul [entropy], 0x1451
+     add [entropy], 1
+     mul a, [entropy]
+     set a, o
+     set pc, pop
+
+; puts(char* text, word color)
+; text in a
+; color in b
+:puts
+     set push, i
+     set i, [video_cur]
+
+:puts_loop
+     ife [a], 0
+          set pc, endputs
+
+     set [0x8000+i], [a]
+     bor [0x8000+i], b
+
+     add a, 1
+     add i, 1
+
+     set pc, puts_loop
+
+:endputs
+     set [video_cur], i
+     set i, pop
+     set pc, pop
+
+; print(char* a)
+:print
+     set b, 0x7000
+     jsr puts
+     set pc, pop
+
+; newline
+:newline
+     set a, 0x0020
+     set b, [video_cur]
+     mod b, a
+     sub a, b
+     add [video_cur], a
+
+     ife [video_cur], 0x8200
+          set [video_cur], 0
+
+     set pc, pop
+
+
+; printl(char* a)
+:printl
+     jsr print
+     jsr newline
+     set pc, pop
+
+; putc(word char, word color)
+:putc
+     set c, [video_cur]
+     bor a, b
+     set [0x8000+c], a
+
+     add [video_cur], 1
+
+     set pc, pop
+
+
+; flashputs(char* text, word color)
+; text pointer in a
+; color in first bytes of b
+:flashputs
+     set push, i
+     set i, [video_cur]
+
+     bor b, 0x0080 ; making text flashy
+:flashputsloop
+     ife [a], 0
+          set pc, endflashputs
+
+
+     set [0x8000+i], [a] ; displaying
+     bor [0x8000+i], b  ; setting color
+
+     add a, 1
+     add i, 1
+     set pc, flashputsloop
+
+:endflashputs
+     set [video_cur], i
+     set i, pop
+     set pc, pop
+
+; readkey()
+; waits for key and returns it in a
+:readkey
+     set a, [0x9000]
+     ife a, 0
+          set pc, readkey
+
+     set [0x9000], 0
+     xor [entropy], a
+     set pc, pop
+
+; clear()
+; clears screen
+:clear
+     set a, 0x8000
+     set b, 0x0200
+     set c, 0x0000
+     jsr memfill
+     set [video_cur], 0
+     set pc, pop
+
+; readline(char* buffer, word mask)
+; returns a number of charactes entered
+; if mask equals 0xF00F, characters are not
+; shown, showing "*" instead
+:readline
+     set push, x
+     set push, y
+     set push, i
+
+     set x, a ; keyboard buffer
+     set i, 0 ; how many characters entered
+     set y, [video_cur]
+
+:readline_loop
+     set [0x8000+y], 0xF0DF ; showing cursor
+
+     jsr readkey
+
+     set c, a ; key
+
+     ife c, 10 ; if enter, end
+          set pc, readline_end
+
+     ife c, 8 ; if backspace
+          set pc, readline_backspace
+
+     ifg 0x0020, c ; if less than 0x20 (space)
+          set pc, readline_loop
+
+     ifg c, 0x007E ; if more than ~
+          set pc, readline_loop
+
+     add x, i
+     set [x], c ; putting data into buffer
+     sub x, i
+     add i, 1 ; char count increased
+
+     bor c, 0x7000
+     set [0x8000+y], c
+
+     ; if masking is enabled
+     ife b, 0xF00F
+          set [0x8000+y], 0x702A ; mask password character
+
+     add y, 1
+     set pc, readline_loop
+
+:readline_end
+     set [video_cur], y      ; moving cursor
+     set [0x8000+y], 0x0000 ; removing cursor itself
+
+
+     set a, i
+     add x, i
+     set [x], 0 ; terminating string
+     sub x, i
+
+     set i, pop
+     set y, pop
+     set x, pop
+     set pc, pop
+
+
+:readline_backspace
+     ife i, 0
+          set pc, readline_loop
+
+     set [0x8000+y], 0x0000 ; do not show cursor
+     sub i, 1 ; one character is removed
+     sub y, 1 ; one character is not displayed
+
+     set pc, readline_loop
+
+; void locate(int row, int column)
+:locate
+     shl a, 5
+     add a, b
+     set [video_cur], a
+     set pc, pop
+
+; exit()
+:exit
+     set a, 7
+     set b, 9
+     jsr locate
+
+     set a, shalt
+     set b, 0xC000
+     jsr puts
+
+     set pc, halt
+
+; halt()
+:halt
+     set pc, halt
+
+; void substr(char* source, word start, word length, char* buffer)
+:substr
+     set push, i
+     set push, z
+     set i, b
+     add i, c ; calculate last address
+
+     add a, b ; starting from start
+     set b, buffer  ; using global buffer!
+     set z, b
+     jsr memcpy
+
+     add b, i
+     set [b], 0
+
+     set a, z ; returning
+     set z, pop
+     set i, pop
+     set pc, pop
+
+
+; void memcpy(* source, * dest, length)
+; from the AtlasOS project
+:memcpy
+     set push, a
+     set push, b
+     set push, c
+
+     ; Calulate the last address
+     add c, a
+
+:memcpy_loop
+     set [b], [a]
+     add a, 1
+     add b, 1
+     ifn a, c
+          set pc, memcpy_loop
+
+     set c, pop
+     set b, pop
+     set a, pop
+     set pc, pop
+
+
+; ##############################################################################
+;
+; main body
+
+:shello dat "Initializing MCP 1              ", 0
+:shalt dat "SYSTEM HALTED", 0
+:buffer dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+
+:init
+     ;jsr clear;
+
+     jsr console
+     jsr exit
+
+     set a, shello
+     set b, 0x7200
+     jsr flashputs
+
+:loop_main
+     ;set a, modules_menu
+     ;set b, modules_menu_count
+     ;jsr printmenu
+
+     jsr readkey;
+
+     ;set i, [module_active]
+     ;set b, module_active
+
+     ;ife a, 0 ; if no key pressed
+     ;     ifn b, 0   ; if is some module_active
+     ;        jsr [modules_menu+i] ; run it
+
+     ife a, 0x0060 ; if ~ is pressed
+          jsr console
+
+     ife a, 0x0010
+          jsr exit
+
+     set pc, loop_main
+
+:printmenu
+     set push, i
+
+     set i, 0
+
+:printmenu_loop
+     ife i, b
+         set pc, printmenu_end
+
+     ifn [a], 0
+        jsr [a]
+
+     add a, 1
+     add i, 1
+
+     set pc, printmenu_loop
+
+:printmenu_end
+     set i, pop
+     set pc, pop
+
+:console_prompt
+dat "> ", 0
+
+:command_exit dat "exit", 0
+:command_halt dat "halt", 0
+
+:input
+dat "THIS TEXT IS TO BE OVERRIDDEN", 0
+
+:console
+     set push, i
+     set push, j
+     set push, x
+     set push, y
+     set push, z
+
+     jsr clear
+     set i, modules_console
+
+:console_loop
+     set a, console_prompt
+     jsr print
+
+     set a, input
+     jsr readline
+
+     set a, command_exit
+     set b, input
+     jsr strcmp
+     ife a, 1
+          set pc, console_end
+
+     ; iterate through modules
+     set i, modules_console
+:console_modules
+     set a, input
+     ifn [i], 0 ; if module is set, jump to it
+          jsr [modules_console]
+
+     ife [i], 0 ; if we've reached end, go to the
+                ; next console module
+          set pc, console_modules_end
+
+     add i, 1 ; go to next module
+     set pc, console_modules
+
+:console_modules_end
+
+     jsr newline
+
+     set pc, console_loop
+
+:console_end
+     set pop, z
+     set pop, y
+     set pop, x
+     set pop, j
+     set pop, i
+     set pc, pop
+
+:mcp_end
+
+; console module entry
+; void (char* command)
+
+; console module should
+; perform check if the command
+; is the command it wants,
+; if so - work accordingly
+; if not - set pc, pop
+
+; console module halt
+; if command in a equals "halt"
+; it goes to halt mode
+; else does nothing
+:module_halt
+     set b, command_halt
+     jsr strcmp
+     ife a, 1
+          jsr exit
+
+     set pc, pop
