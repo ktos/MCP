@@ -21,15 +21,12 @@
 
 
 ; go to initialization
-set pc, init
+set pc, mcp_init
 
 ; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
 ; list of modules
 ; or rather their initial subroutines' addresses
 :modules
-dat 0
-
-:modules_count
 dat 0
 
 ; list of modules avaliable by menu
@@ -40,18 +37,24 @@ dat 0
 ; list of modules avaliable by console
 ; or rather their console subroutines' addresses
 :modules_console
-dat module_halt, 0
+dat 0
+
+; module which will be run as the first one
+:module_entry dat 0
 
 ; useful additional variables/memory addresses reserved
-:module_active
-dat 0
-
 :entropy
 dat 0
+
+:buffer
+dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 :video_cur
 dat 0x0000
 
+; ##############################################################################
+; Common API
+; ##############################################################################
 
 ; strcmp(char* a, char* b)
 ; return in a
@@ -161,6 +164,9 @@ dat 0x0000
      add [video_cur], a
 
      ife [video_cur], 0x8200
+          set [video_cur], 0
+
+     ifg [video_cur], 0x8200
           set [video_cur], 0
 
      set pc, pop
@@ -315,15 +321,44 @@ dat 0x0000
      set b, 9
      jsr locate
 
-     set a, shalt
-     set b, 0xC000
+     set a, msg_halted
+     set b, 0xE000
      jsr puts
 
      set pc, halt
 
+:msg_halted dat "SYSTEM HALTED", 0
+
 ; halt()
 :halt
      set pc, halt
+
+:excodes dat msg_panic, msg_ex_noinit
+
+:msg_ex_noinit dat "No init!", 0
+:msg_panic dat "Ooops. ", 0
+
+; void exception(word excode)
+:exception
+     set push, a
+
+     set a, 0
+     set b, 0
+     jsr locate
+
+     set a, msg_panic
+     set b, 0xF000
+     jsr puts
+
+     set b, pop
+     set a, excodes
+     add a, b
+     add a, 1
+     set b, 0xC000
+     jsr puts
+
+     jsr exit
+
 
 ; void substr(char* source, word start, word length, char* buffer)
 :substr
@@ -373,143 +408,14 @@ dat 0x0000
 ;
 ; main body
 
-:shello dat "Initializing MCP 1              ", 0
-:shalt dat "SYSTEM HALTED", 0
-:buffer dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
-
-:init
-     ;jsr clear;
-
-     jsr console
-     jsr exit
-
-     set a, shello
-     set b, 0x7200
-     jsr flashputs
-
-:loop_main
-     ;set a, modules_menu
-     ;set b, modules_menu_count
-     ;jsr printmenu
-
-     jsr readkey;
-
-     ;set i, [module_active]
-     ;set b, module_active
-
-     ;ife a, 0 ; if no key pressed
-     ;     ifn b, 0   ; if is some module_active
-     ;        jsr [modules_menu+i] ; run it
-
-     ife a, 0x0060 ; if ~ is pressed
-          jsr console
-
-     ife a, 0x0010
-          jsr exit
-
-     set pc, loop_main
-
-:printmenu
-     set push, i
-
-     set i, 0
-
-:printmenu_loop
-     ife i, b
-         set pc, printmenu_end
-
-     ifn [a], 0
-        jsr [a]
-
-     add a, 1
-     add i, 1
-
-     set pc, printmenu_loop
-
-:printmenu_end
-     set i, pop
-     set pc, pop
-
-:console_prompt
-dat "> ", 0
-
-:command_exit dat "exit", 0
-:command_halt dat "halt", 0
-
-:input
-dat "THIS TEXT IS TO BE OVERRIDDEN", 0
-
-:console
-     set push, i
-     set push, j
-     set push, x
-     set push, y
-     set push, z
-
+:mcp_init
      jsr clear
-     set i, modules_console
+     ifn [module_entry], 0
+          jsr [module_entry]
 
-:console_loop
-     set a, console_prompt
-     jsr print
-
-     set a, input
-     jsr readline
-
-     set a, command_exit
-     set b, input
-     jsr strcmp
-     ife a, 1
-          set pc, console_end
-
-     ; iterate through modules
-     set i, modules_console
-:console_modules
-     set a, input
-     ifn [i], 0 ; if module is set, jump to it
-          jsr [modules_console]
-
-     ife [i], 0 ; if we've reached end, go to the
-                ; next console module
-          set pc, console_modules_end
-
-     add i, 1 ; go to next module
-     set pc, console_modules
-
-:console_modules_end
-
-     jsr newline
-
-     set pc, console_loop
-
-:console_end
-     set pop, z
-     set pop, y
-     set pop, x
-     set pop, j
-     set pop, i
-     set pc, pop
-
+     set a, 1
+     jsr exception
 :mcp_end
 
-; console module entry
-; void (char* command)
 
-; console module should
-; perform check if the command
-; is the command it wants,
-; if so - work accordingly
-; if not - set pc, pop
-
-; console module halt
-; if command in a equals "halt"
-; it goes to halt mode
-; else does nothing
-:module_halt
-     set b, command_halt
-     jsr strcmp
-     ife a, 1
-          jsr exit
-
-     set pc, pop

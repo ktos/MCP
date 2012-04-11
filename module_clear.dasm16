@@ -1,0 +1,11 @@
+:module_clear
+     set b, cmd_clear
+     jsr strcmp
+     ifn a, 1
+          set pc, pop
+
+     jsr clear
+
+     set a, 1
+     set pc, pop
+:cmd_clear dat "clear", 0

@@ -1,0 +1,72 @@
+; cryptxor(char* text, char* key)
+; text is in a
+; key is in b
+:cryptxor
+    set push, c
+
+    set push, a  ; text start
+    set c, b  ; key start
+
+:xorloop
+
+     ife [a], 0      ; if last byte of data
+         set PC, endxor    ; end subroutine
+
+     xor [a], [b]     ; encryption
+
+     add a, 1              ; moving to next word
+                           ; in text
+
+     add b, 1
+     ife [b], 0        ; if key ended
+         set b, c      ; start from begining
+
+     set PC, xorloop
+
+:endxor
+     set a, pop
+     set c, pop
+     set pc, pop
+
+:command_crypt dat "crypt", 0
+:msg_entertext dat "Enter text: ", 0
+:msg_enterkey  dat "Enter key: ", 0
+:buf_text dat "                                                ", 0
+:buf_key dat "                                                ", 0
+
+:module_crypt
+     set b, command_crypt
+     jsr strcmp
+     ifn a, 1
+          set pc, module_crypt_badend
+
+     jsr newline
+     set a, msg_entertext
+     jsr print
+
+     set a, buf_text
+     jsr readline
+
+     jsr newline
+
+     set a, msg_enterkey
+     jsr print
+
+     set a, buf_key
+     set b, 0xF00F
+     jsr readline
+
+     jsr newline
+
+     set a, buf_text
+     set b, buf_key
+     jsr cryptxor
+
+     set a, buf_text
+     jsr print
+
+:module_crypt_goodend
+     set a, 1
+
+:module_crypt_badend
+     set pc, pop  

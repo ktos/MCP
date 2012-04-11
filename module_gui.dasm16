@@ -1,0 +1,44 @@
+:shello dat "Initializing MCP 1              ", 0 
+
+:loop_main
+     ;set a, modules_menu
+     ;set b, modules_menu_count
+     ;jsr printmenu
+
+     jsr readkey;
+
+     ;set i, [module_active]
+     ;set b, module_active
+
+     ;ife a, 0 ; if no key pressed
+     ;     ifn b, 0   ; if is some module_active
+     ;        jsr [modules_menu+i] ; run it
+
+     ife a, 0x0060 ; if ~ is pressed
+          jsr console
+
+     ife a, 0x0010
+          jsr exit
+
+     set pc, loop_main
+
+:printmenu
+     set push, i
+
+     set i, 0
+
+:printmenu_loop
+     ife i, b
+         set pc, printmenu_end
+
+     ifn [a], 0
+        jsr [a]
+
+     add a, 1
+     add i, 1
+
+     set pc, printmenu_loop
+
+:printmenu_end
+     set i, pop
+     set pc, pop

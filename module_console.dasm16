@@ -1,0 +1,72 @@
+:console_prompt dat "> ", 0
+:command_exit dat "exit", 0
+:command_halt dat "halt", 0
+:input dat "THIS TEXT IS TO BE OVERRIDDEN", 0
+
+:console
+     set push, i
+     set push, j
+     set push, x
+     set push, y
+     set push, z
+
+     jsr clear
+     set i, modules_console
+
+:console_loop
+     set a, console_prompt
+     jsr print
+
+     set a, input
+     jsr readline
+
+     set a, command_exit
+     set b, input
+     jsr strcmp
+     ife a, 1
+          set pc, console_end
+
+     ; iterate through modules
+     set i, modules_console
+:console_modules_loop
+     set a, input
+     ifn [i], 0 ; if module is set, jump to it
+          jsr [i]
+
+     ife [i], 0 ; if we've reached end, go to the
+                ; next console module
+          set pc, console_modules_loop_end
+
+     ife a, 1   ; if module returned true, command was
+                ; executed
+          set pc, console_modules_loop_end
+
+     add i, 1 ; go to next module
+     set pc, console_modules_loop
+
+:console_modules_loop_end
+
+     ;ifn a, 1 ; if no module set this to 1, command was
+              ; unrecognized
+     ;     jsr console_unrecognized
+
+
+     jsr newline
+
+     set pc, console_loop
+
+:console_end
+     set pop, z
+     set pop, y
+     set pop, x
+     set pop, j
+     set pop, i
+     set pc, pop
+
+:console_unrecognized
+     jsr newline
+     set a, munrecognized
+     jsr print
+     set pc, pop
+
+:munrecognized dat "Command not recognized", 0 

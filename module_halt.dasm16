@@ -1,0 +1,20 @@
+; console module entry
+; void (char* command)
+
+; console module should
+; perform check if the command
+; is the command it wants,
+; if so - work accordingly and return 1
+; if not - set pc, pop
+
+; console module halt
+; if command in a equals "halt"
+; it goes to halt mode
+; else does nothing
+:module_halt
+     set b, command_halt
+     jsr strcmp
+     ife a, 1
+          jsr exit
+
+     set pc, pop
