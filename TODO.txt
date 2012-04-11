@@ -1,0 +1,3 @@
+Poprawiæ locate dla pierwszej linii
+Poprawiæ przepe³nienie bufora w komendach
+Poprawiæ wychodzenie poza ekran w locate/readline

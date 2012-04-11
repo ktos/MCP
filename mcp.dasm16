@@ -350,17 +350,19 @@ dat 0x0000
      set b, 0xF000
      jsr puts
 
-     set b, pop
-     set a, excodes
-     add a, b
-     add a, 1
+     set a, pop
+
+     ife a, 0      ; if no additional error code
+          jsr exit
+
      set b, 0xC000
      jsr puts
 
      jsr exit
 
 
-; void substr(char* source, word start, word length, char* buffer)
+; void substr(char* source, word start, word length)
+; returns pointer to a buffer
 :substr
      set push, i
      set push, z
@@ -381,7 +383,7 @@ dat 0x0000
      set pc, pop
 
 
-; void memcpy(* source, * dest, length)
+; void memcpy(void* source, void* dest, length)
 ; from the AtlasOS project
 :memcpy
      set push, a
@@ -414,7 +416,7 @@ dat 0x0000
      ifn [module_entry], 0
           jsr [module_entry]
 
-     set a, 1
+     set a, msg_ex_noinit
      jsr exception
 :mcp_end
 
