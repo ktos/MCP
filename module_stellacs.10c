@@ -1,0 +1,122 @@
+:msg_hello dat "Stella-class Control System v1  ", 0
+:msg_menu  dat "HOME SURR NAVI ENGI COMM TELE   ", 0
+:msg_status dat "HUL: 1 ENG: 0.7 REA: 1 CPU: 1   ", 0
+                
+:module_stellacs
+     ife [context], 2
+          set pc, stellacs_exit
+
+     jsr clrscr
+
+     set a, 0
+     set b, 0
+     jsr locate
+
+     set a, msg_hello
+     set b, 0x7100
+     jsr puts
+
+
+     set a, 11
+     set b, 0
+     jsr locate
+     
+     set a, msg_menu
+     set b, 0x7100
+     jsr puts
+     
+     set a, 5
+     set b, 1
+     jsr scs_highlight_menu ; highlighting item on menu
+     
+     jsr scs_screen_surroundings
+:module_stellacs_loop     
+          
+	 ; keyboard, interrupts, exiting should be here
+     set pc, module_stellacs_loop
+
+:stellacs_exit
+     set a, 0
+     set pc, pop    
+     
+     
+:scs_clrscr
+    set a, 0x8021
+    set b, 0x013F
+    set c, 0
+    jsr memfill
+    set pc, pop
+    
+:scs_highlight_menu
+    ife b, 1
+    	set pc, hi
+    	
+    ife b, 0
+    	set pc, unhi
+    	
+    set pc, pop
+
+:hi
+    set c, 0
+:hiloop
+    ife c, 4
+        set pc, pop
+	bor [0x8160+a], 0x7E00
+	add a, 1
+	add c, 1
+	set pc, hiloop
+
+:unhi
+    set c, 0
+:unhiloop
+    ife c, 4
+    	set pc, pop
+    and [0x8160+a], 0x00FF
+    bor [0x8160+a], 0x7100
+    set pc, unhiloop
+
+; surroundings - sensors screen
+:scs_screen_surroundings
+    set a, 0
+    set b, 0
+    jsr locate
+    
+    set a, msg_status
+    set b, 0x7100
+    jsr puts
+    
+    and [0x800C], 0x00FF
+    bor [0x800C], 0xF400
+    
+    and [0x800D], 0x00FF
+    bor [0x800D], 0xF400
+    
+    and [0x800E], 0x00FF
+    bor [0x800E], 0xF400
+
+    jsr scs_clrscr    
+            
+    set [0x80AE], 0x2017 ; drawing a ship
+    set [0x80AF], 0x2014
+    
+    set [0x8040], 0x203C ; drawing nearest sun indicator
+
+	; red - incoming
+	; blue - retreating
+	
+	; light color - over or on same vector against you
+	; dark color - under you
+	
+	; blinking - attacking you
+	; X - enemy vessels
+	; F - friendly vessels
+	; O - unidentified
+	; * - missiles
+
+    set [0x80CD], 0x4078 ; incoming enemy
+    set [0x80A0], 0xB04F ; retreating unidentified
+    set [0x80B3], 0x3046 ; retreating friend
+    set [0x8044], 0xC02E ; incoming missile
+    bor [0x8044], 0x0080
+
+    set pc, pop

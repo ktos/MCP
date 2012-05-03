@@ -8,13 +8,16 @@
 ; readkey()
 ; waits for key and returns it in a
 :readkey
-     set a, [0x9000]
+     set a, c
      ife a, 0
           set pc, readkey
 
-     set [0x9000], 0
+     set c, 0
+     set push, a
+     set a, 0
+     hwi [keyboard]
+     set a, pop
      set pc, pop
-
 
 
 ; readline(char* buffer, word mask)

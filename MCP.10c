@@ -26,10 +26,10 @@ set pc, mcp_init
 ; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
 ; list of modules
 ; or rather their initial subroutines' addresses
-:modules dat 0
+:modules dat module_stellacs, 0
 
 ; module which will be run as the first one
-:module_init dat 0
+:module_init dat module_stellacs
 
 ; useful additional variables/memory addresses reserved
 
@@ -46,6 +46,10 @@ set pc, mcp_init
 
 ; ###################################################
 ; some useful subroutines (any other are in external files)
+
+; #include <libbase.10c>
+; #include <libscreen.10c>
+; #include <libkeyboard.10c>
 
 ; exit()
 :exit
@@ -135,10 +139,17 @@ set pc, mcp_init
 	:hw_initialize_display		
 		set a, 0 ; MEM_MAP_SCREEN mode 
 		set b, 0x8000 ; address of memory to be used
-		hwi [display] ; send interrupt 		
+		hwi [display] ; send interrupt
+		
+	:hw_initialize_keyboard
+	    set a, 0 ; clearing keyboard buffer
+	    hwi [keyboard]
+	    set a, 1 ; next character pressed will be put in C register
+	    hwi [keyboard]
 				
      	jsr clrscr
 
+	:mcp_init_module	
      	set [context], 0 ; setting up the context - init
 
      	ifn [module_init], 0
