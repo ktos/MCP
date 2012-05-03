@@ -18,3 +18,5 @@
           jsr exit
 
      set pc, pop
+     
+:command_halt dat "halt", 0

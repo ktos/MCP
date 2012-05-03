@@ -68,11 +68,11 @@
      set pc, pop
 
 :console_end
-     set pop, z
-     set pop, y
-     set pop, x
-     set pop, j
-     set pop, i
+     set z, pop
+     set y, pop
+     set x, pop
+     set j, pop
+     set i, pop
      set pc, pop
 
 :console_unrecognized

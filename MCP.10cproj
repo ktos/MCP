@@ -6,5 +6,10 @@
     <file path="libbase.10c" />
     <file path="libscreen.10c" />
     <file path="libkeyboard.10c" />
+    <file path="module_clear.10c" />
+    <file path="module_console.10c" />
+    <file path="module_gui.10c" />
+    <file path="module_halt.10c" />
+    <file path="module_crypt.10c" />
   </files>
 </project>
