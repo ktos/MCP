@@ -1,0 +1,131 @@
+; --------------------------------------------
+; Title:   
+; Author:  Marcin
+; Date:    2012-05-03
+; Version: 
+; --------------------------------------------
+
+; puts(char* text, word color)
+; text in a
+; color in b
+:puts
+     set push, i
+     set i, [video_cur]
+
+:puts_loop
+     ife [a], 0
+          set pc, endputs
+
+     set [0x8000+i], [a]
+     bor [0x8000+i], b
+
+     add a, 1
+     add i, 1
+
+     set pc, puts_loop
+
+:endputs
+     set [video_cur], i
+     set i, pop
+     set pc, pop
+
+; print(char* a)
+:print
+     set b, 0x7000
+     jsr puts
+     set pc, pop
+
+; newline
+:newline
+     set a, 0x0020
+     set b, [video_cur]
+     mod b, a
+     sub a, b
+     add [video_cur], a
+
+     ife [video_cur], 0x8200
+          set [video_cur], 0
+
+     ifg [video_cur], 0x8200
+          set [video_cur], 0
+
+     set pc, pop
+
+
+; printl(char* a)
+:printl
+     jsr print
+     jsr newline
+     set pc, pop
+
+; putc(word char, word color)
+:putc
+     set c, [video_cur]
+     bor a, b
+     set [0x8000+c], a
+
+     add [video_cur], 1
+
+     set pc, pop
+
+
+; flashputs(char* text, word color)
+; text pointer in a
+; color in first bytes of b
+:flashputs
+     set push, i
+     set i, [video_cur]
+
+     bor b, 0x0080 ; making text flashy
+:flashputsloop
+     ife [a], 0
+          set pc, endflashputs
+
+
+     set [0x8000+i], [a] ; displaying
+     bor [0x8000+i], b  ; setting color
+
+     add a, 1
+     add i, 1
+     set pc, flashputsloop
+
+:endflashputs
+     set [video_cur], i
+     set i, pop
+     set pc, pop
+     
+; clrscr()
+; clears screen
+:clrscr
+     set a, 0x8000
+     set b, 0x0200
+     set c, 0x0000
+     jsr memfill
+     set [video_cur], 0
+     set pc, pop
+     
+; void locate(int row, int column)
+:locate
+     set c, a
+     shl a, 5
+
+     ife c, 0
+          set a, 0
+
+     add a, b
+     set [video_cur], a
+     set pc, pop
+     
+; memfill(memory, length, value)
+:memfill
+    ife b, 0
+         set pc, pop
+
+    :memfill_loop
+    set [a], c
+    add a, 1
+    sub b, 1
+    ifn b, 0
+         set pc, memfill_loop
+
+    set pc, pop

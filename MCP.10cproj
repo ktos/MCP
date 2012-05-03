@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <name>Master Control Program</name>
+  <files>
+    <file path="MCP.10c" />
+    <file path="libbase.10c" />
+    <file path="libscreen.10c" />
+    <file path="libkeyboard.10c" />
+  </files>
+</project>

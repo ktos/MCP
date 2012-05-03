@@ -1,0 +1,97 @@
+; --------------------------------------------
+; Title:   
+; Author:  Marcin
+; Date:    2012-05-03
+; Version: 
+; --------------------------------------------
+
+; strcmp(char* a, char* b)
+; return in a
+; 1 = same
+; 0 = different
+:strcmp
+
+:strcmp_loop
+     set c, 0
+
+     ife [a], [b]
+          jsr strcmp_checkend
+
+     ife c, 1
+          set pc, strcmp_end
+
+     ifn [a], [b]
+         set pc, strcmp_end
+
+     add a, 1
+     add b, 1
+     set pc, strcmp_loop
+
+:strcmp_checkend
+     ife [a], 0
+          set c, 1
+     set pc, pop
+
+:strcmp_end
+     set a, c
+     set pc, pop
+
+; strlen(char* a)
+:strlen
+     set b, a
+
+:strlen_loop
+     ife [a], 0
+          set pc, strlen_end
+
+     add a, 1
+     set pc, strlen_loop
+
+:strlen_end
+     sub a, b
+     set pc, pop
+     
+     
+; void substr(char* source, word start, word length)
+; returns pointer to a buffer
+:substr
+     set push, i
+     set push, z
+     set i, b
+     add i, c ; calculate last address
+
+     add a, b ; starting from start
+     set b, buffer  ; using global buffer!
+     set z, b
+     jsr memcpy
+
+     add b, i
+     set [b], 0
+
+     set a, z ; returning
+     set z, pop
+     set i, pop
+     set pc, pop
+
+
+; void memcpy(void* source, void* dest, length)
+; from the AtlasOS project
+:memcpy
+     set push, a
+     set push, b
+     set push, c
+
+     ; Calulate the last address
+     add c, a
+
+:memcpy_loop
+     set [b], [a]
+     add a, 1
+     add b, 1
+     ifn a, c
+          set pc, memcpy_loop
+
+     set c, pop
+     set b, pop
+     set a, pop
+     set pc, pop

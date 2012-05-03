@@ -1,0 +1,153 @@
+; Modular/Master Control Program
+; Copyright (C) by Marcin "Ktos" Badurowicz 2012
+;
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+;
+; The above copyright notice and this permission notice shall be included in all
+; copies or substantial portions of the Software.
+;
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+; SOFTWARE.
+
+
+; go to initialization
+set pc, mcp_init
+
+; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
+; list of modules
+; or rather their initial subroutines' addresses
+:modules dat 0
+
+; module which will be run as the first one
+:module_init dat 0
+
+; useful additional variables/memory addresses reserved
+
+; 64-word buffer, used mostly for text
+:buffer dat "                                                                "
+
+; current video position
+:video_cur dat 0x0000
+
+:context dat 0
+:display dat 0
+:keyboard dat 0
+:clock dat 0
+
+; ###################################################
+; some useful subroutines (any other are in external files)
+
+; exit()
+:exit
+     set a, 6
+     set b, 9
+     jsr locate
+
+     set a, msg_halted
+     set b, 0xE000
+     jsr puts
+
+     set pc, halt
+
+:msg_halted dat "SYSTEM HALTED", 0
+
+; halt()
+:halt
+     set pc, halt
+
+:excodes dat msg_panic, msg_ex_noinit
+
+:msg_ex_noinit dat "No init!", 0
+:msg_panic dat "Ooops. ", 0
+
+; void exception(word excode)
+:exception
+     set push, a
+
+     set a, 0
+     set b, 0
+     jsr locate
+
+     set a, msg_panic
+     set b, 0xF000
+     jsr puts
+
+     set a, pop
+
+     ife a, 0      ; if no additional error code
+          jsr exit
+
+     set b, 0xC000
+     jsr puts
+
+     jsr exit
+
+; ##############################################################################
+;
+; main body
+
+
+:mcp_init ; initialization - loading modules, loading basic hardware
+
+	hwn i ; Get the list of attached hardware
+	set j, 0 ; Count
+
+:hw_loop
+	hwq j ; get hardware info
+	ife a, 0xf615 ; if it's a monitor
+		set pc, display_detected
+
+	ife a, 0x7406 ; keyboard
+		set pc, keyboard_detected
+	
+	ife a, 0xb402 ; clock
+		set pc, clock_detected
+
+	:hw_continue
+		add j, 1 ; next hardware
+		ife j, i ; if finished, initialize display and go!
+			set pc, hw_initialize_display
+	
+	set pc, hw_loop
+
+	:display_detected
+		set [display], j
+		set pc, hw_continue
+
+	:keyboard_detected
+		set [keyboard], j
+		set pc, hw_continue
+
+	:clock_detected
+		set [clock], j
+		set pc, hw_continue
+
+	:hw_initialize_display		
+		set a, 0 ; MEM_MAP_SCREEN mode 
+		set b, 0x8000 ; address of memory to be used
+		hwi [display] ; send interrupt 		
+				
+     	jsr clrscr
+
+     	set [context], 0 ; setting up the context - init
+
+     	ifn [module_init], 0
+        	set pc, mcp_runentry
+
+     	set a, msg_ex_noinit
+     	jsr exception
+:mcp_end
+
+:mcp_runentry  ; when the entry module ends, halt system
+     jsr [module_init]
+     jsr halt

@@ -1,0 +1,91 @@
+; --------------------------------------------
+; Title:   
+; Author:  Marcin
+; Date:    2012-05-03
+; Version: 
+; --------------------------------------------
+
+; readkey()
+; waits for key and returns it in a
+:readkey
+     set a, [0x9000]
+     ife a, 0
+          set pc, readkey
+
+     set [0x9000], 0
+     set pc, pop
+
+
+
+; readline(char* buffer, word mask)
+; returns a number of charactes entered
+; if mask equals 0xF00F, characters are not
+; shown, showing "*" instead
+:readline
+     set push, x
+     set push, y
+     set push, i
+
+     set x, a ; keyboard buffer
+     set i, 0 ; how many characters entered
+     set y, [video_cur]
+
+:readline_loop
+     set [0x8000+y], 0xF0DF ; showing cursor
+
+     jsr readkey
+
+     set c, a ; key
+
+     ife c, 10 ; if enter, end
+          set pc, readline_end
+
+     ife c, 8 ; if backspace
+          set pc, readline_backspace
+
+     ifg 0x0020, c ; if less than 0x20 (space)
+          set pc, readline_loop
+
+     ifg c, 0x007E ; if more than ~
+          set pc, readline_loop
+
+     add x, i
+     set [x], c ; putting data into buffer
+     sub x, i
+     add i, 1 ; char count increased
+
+     bor c, 0x7000
+     set [0x8000+y], c
+
+     ; if masking is enabled
+     ife b, 0xF00F
+          set [0x8000+y], 0x702A ; mask password character
+
+     add y, 1
+     set pc, readline_loop
+
+:readline_end
+     set [video_cur], y      ; moving cursor
+     set [0x8000+y], 0x0000 ; removing cursor itself
+
+
+     set a, i
+     add x, i
+     set [x], 0 ; terminating string
+     sub x, i
+
+     set i, pop
+     set y, pop
+     set x, pop
+     set pc, pop
+
+
+:readline_backspace
+     ife i, 0
+          set pc, readline_loop
+
+     set [0x8000+y], 0x0000 ; do not show cursor
+     sub i, 1 ; one character is removed
+     sub y, 1 ; one character is not displayed
+
+     set pc, readline_loop

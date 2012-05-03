@@ -1,11 +1,25 @@
-:shello dat "Initializing MCP 1              ", 0 
+:msg_hello dat "MCP-GCS 1                       ", 0
 
-:loop_main
+:module_gcs
+     ife [context], 2
+          set pc, gcs_exit
+
+     jsr clrscr
+
+     set a, 0
+     set b, 0
+     jsr locate
+
+     set a, msg_hello
+     set b, 0x7100
+     jsr puts
+
+:module_gcs_loop
      ;set a, modules_menu
      ;set b, modules_menu_count
      ;jsr printmenu
 
-     jsr readkey;
+     jsr readkey
 
      ;set i, [module_active]
      ;set b, module_active
@@ -14,13 +28,17 @@
      ;     ifn b, 0   ; if is some module_active
      ;        jsr [modules_menu+i] ; run it
 
-     ife a, 0x0060 ; if ~ is pressed
-          jsr console
+     ;ife a, 0x0060 ; if ~ is pressed
+     ;     jsr console
 
-     ife a, 0x0010
-          jsr exit
+     ife a, 0x001B  ; escape closes
+          set pc, gcs_exit
 
-     set pc, loop_main
+     set pc, module_gcs_loop
+
+:gcs_exit
+     set a, 0
+     set pc, pop
 
 :printmenu
      set push, i
@@ -41,4 +59,4 @@
 
 :printmenu_end
      set i, pop
-     set pc, pop
+     set pc, pop     
