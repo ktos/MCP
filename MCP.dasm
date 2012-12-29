@@ -46,9 +46,9 @@ set pc, mcp_init
 ; ###################################################
 ; some useful subroutines (any other are in external files)
 
-.include <libbase.10c>
-.include <libscreen.10c>
-.include <libkeyboard.10c>
+.include <libbase.dasm>
+.include <libscreen.dasm>
+.include <libkeyboard.dasm>
 
 ; exit()
 :exit
