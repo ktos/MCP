@@ -1,7 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<solution>
-  <name>MCP</name>
-  <projects>
-    <project path=".\MCP.10cproj" />
-  </projects>
-</solution>

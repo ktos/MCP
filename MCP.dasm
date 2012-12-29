@@ -19,17 +19,16 @@
 ;  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ; SOFTWARE.
 
-
 ; go to initialization
 set pc, mcp_init
 
 ; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
 ; list of modules
 ; or rather their initial subroutines' addresses
-:modules dat module_stellacs, 0
+:modules dat 0
 
 ; module which will be run as the first one
-:module_init dat module_stellacs
+:module_init dat 0
 
 ; useful additional variables/memory addresses reserved
 
@@ -47,9 +46,9 @@ set pc, mcp_init
 ; ###################################################
 ; some useful subroutines (any other are in external files)
 
-; #include <libbase.10c>
-; #include <libscreen.10c>
-; #include <libkeyboard.10c>
+.include <libbase.10c>
+.include <libscreen.10c>
+.include <libkeyboard.10c>
 
 ; exit()
 :exit
