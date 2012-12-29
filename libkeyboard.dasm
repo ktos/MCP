@@ -8,16 +8,20 @@
 ; readkey()
 ; waits for key and returns it in a
 :readkey
-     set a, c
-     ife a, 0
-          set pc, readkey
-
-     set c, 0
-     set push, a
-     set a, 0
-     hwi [keyboard]
-     set a, pop
-     set pc, pop
+	set a, 0
+	hwi [keyboard]     
+    set c, 0    
+    
+	set a, 1
+     
+	
+    :readkey_loop 
+	hwi [keyboard] 
+    ife c, 0
+    	set pc, readkey_loop
+    
+    set a, c
+    set pc, pop
 
 
 ; readline(char* buffer, word mask)
@@ -40,10 +44,10 @@
 
      set c, a ; key
 
-     ife c, 10 ; if enter, end
+     ife c, 0x0011 ; if enter, end
           set pc, readline_end
 
-     ife c, 8 ; if backspace
+     ife c, 0x0010 ; if backspace
           set pc, readline_backspace
 
      ifg 0x0020, c ; if less than 0x20 (space)

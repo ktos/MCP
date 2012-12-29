@@ -24,11 +24,11 @@ set pc, mcp_init
 
 ; THESE MEMORY VALUES ARE MODIFIED BY configure SCRIPTS
 ; list of modules
-; or rather their initial subroutines' addresses
-:modules dat 0
+; or rather their initial subroutines addresses
+:modules dat module_console, 0
 
 ; module which will be run as the first one
-:module_init dat 0
+:module_init dat module_console
 
 ; useful additional variables/memory addresses reserved
 
@@ -161,3 +161,5 @@ set pc, mcp_init
 :mcp_runentry  ; when the entry module ends, halt system
      jsr [module_init]
      jsr halt
+	 
+.include "module_console.dasm"
